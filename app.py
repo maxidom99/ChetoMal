@@ -32,7 +32,7 @@ def get_db_connection():
         port=int(port)  # Convertir a entero
     )
 
-st.set_page_config(page_title="Barbería", page_icon="💈")
+st.set_page_config(page_title="Barbería", page_icon="💈", layout="wide")
 
 def main():
     # Construye el menú lateral

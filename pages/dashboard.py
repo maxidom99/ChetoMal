@@ -1,13 +1,11 @@
 import streamlit as st
-st.set_page_config(page_title="Dashboard", layout="wide")
-
 import pandas as pd
 import matplotlib.pyplot as plt
-
-from app import get_db_connection
 from datetime import datetime
 from modules.nav import Navbar
+from app import get_db_connection
 
+st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 # Configurar la página y el título del dashboard
 
 def main():

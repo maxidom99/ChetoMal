@@ -10,7 +10,7 @@ import os
 load_dotenv(dotenv_path='env/.env')
 
 # Configuración de la página
-st.set_page_config(page_title="Gestión de Barberos", page_icon="✂️")
+st.set_page_config(page_title="Gestión de Barberos", page_icon="✂️", layout="wide")
 
 def get_db_connection():
     """Establecer la conexión a la base de datos."""
