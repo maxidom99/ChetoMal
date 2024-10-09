@@ -2,3 +2,4 @@ pandas
 matplotlib
 datetime
 mysql-connector-python
+dotenv
