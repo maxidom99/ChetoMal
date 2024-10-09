@@ -44,13 +44,6 @@ except FileNotFoundError:
     except:
         pass
 
-# Cargar información de barberos
-try:
-    barberos = pd.read_csv('data/barberos.csv')
-except FileNotFoundError:
-    st.warning("No se ha encontrado el archivo de barberos.")
-    barberos = pd.DataFrame(columns=["Nombre", "Rol"])
-
 # Título del dashboard
 st.title("Dashboard de Barbería")
 #st.markdown("### Visualización de ingresos y ventas")
@@ -76,9 +69,9 @@ if not ventas.empty:
     col1, col2, col3 = st.columns(3)
 
     # Mostrar las métricas
-    col1.metric(label="Ingresos Totales", value=f"${ingresos_totales}")
-    col2.metric(label="Ingresos por Tatuajes", value=f"${ingresos_tatuajes}")
-    col3.metric(label="Ingresos de Socios", value=f"${ingresos_socios}")
+    col1.metric(label="Ingresos Totales", value=f"${int(ingresos_totales)}")
+    col2.metric(label="Ingresos por Tatuajes", value=f"${int(ingresos_tatuajes)}")
+    col3.metric(label="Ingresos de Socios", value=f"${int(ingresos_socios)}")
 
     # Calcular ingresos filtrados por el año actual, mes actual y día actual
     ingresos_año_actual = ventas[ventas['fecha'].dt.year == año_actual]['monto'].sum()
@@ -91,9 +84,9 @@ if not ventas.empty:
     # Mostrar sumas filtradas
     st.markdown("### Ingresos Filtrados")
     col4, col5, col6 = st.columns(3)
-    col4.metric(label="Ingresos Año Actual", value=f"${ingresos_año_actual}")
-    col5.metric(label="Ingresos Mes Actual", value=f"${ingresos_mes_actual}")
-    col6.metric(label="Ingresos Día Actual", value=f"${ingresos_día_actual}")
+    col4.metric(label="Ingresos Año Actual", value=f"${int(ingresos_año_actual)}")
+    col5.metric(label="Ingresos Mes Actual", value=f"${int(ingresos_mes_actual)}")
+    col6.metric(label="Ingresos Día Actual", value=f"${int(ingresos_día_actual)}")
 
     st.divider()
     # Crear tres columnas: barberos, divisor y socios
