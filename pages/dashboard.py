@@ -43,6 +43,34 @@ except FileNotFoundError:
         ventas['fecha'] = ventas['fecha'].dt.date
     except:
         pass
+    
+# Cargar las ventas registradas
+try:
+# Leer ventas desde MySQL
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM barberos")
+    barberos_sql = cursor.fetchall()
+
+    # Convertir los resultados a un DataFrame de pandas
+    barberos = pd.DataFrame(barberos_sql)
+    try:
+        barberos['fecha_alta'] = pd.to_datetime(ventas['fecha_alta'])
+        barberos['fecha_baja'] = pd.to_datetime(ventas['fecha_baja'])
+    except:
+        pass
+    
+    # Cerrar conexión
+    cursor.close()
+    conn.close()
+except FileNotFoundError:
+    st.warning("No se han registrado ventas todavía.")
+    try:
+        barberos = pd.DataFrame(columns=["nombre", "rol", "activo", "fecha_alta", "fecha_baja", "baja"])
+        barberos['fecha_alta'] = pd.to_datetime(ventas['fecha_alta'])
+        barberos['fecha_baja'] = pd.to_datetime(ventas['fecha_baja'])
+    except:
+        pass
 
 # Título del dashboard
 st.title("Dashboard de Barbería")
