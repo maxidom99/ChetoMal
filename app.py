@@ -6,7 +6,9 @@ import mysql.connector
 from dotenv import load_dotenv
 import os
 
-load_dotenv(dotenv_path='env/.env')
+# Cargar las variables de entorno solo si no están en producción
+if 'STREAMLIT_ENV' not in os.environ:
+    load_dotenv(dotenv_path='env/.env')
 
 def get_db_connection():
     # Verificar que todas las variables necesarias estén disponibles

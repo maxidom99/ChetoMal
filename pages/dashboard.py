@@ -6,8 +6,8 @@ from app import get_db_connection
 from datetime import datetime
 from modules.nav import Navbar
 
+st.set_page_config(page_title="Dashboard", layout="wide")
 # Configurar la página y el título del dashboard
-#st.set_page_config(page_title="Dashboard", layout="wide")
 
 def main():
     Navbar()
