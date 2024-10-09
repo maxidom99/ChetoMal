@@ -1,3 +1,5 @@
 pandas
 matplotlib
 datetime
+mysql-connector-python
+os

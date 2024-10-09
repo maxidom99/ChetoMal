@@ -2,6 +2,33 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from modules.nav import Navbar
+import mysql.connector
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path='env/.env')
+
+def get_db_connection():
+    # Verificar que todas las variables necesarias estén disponibles
+    host = os.getenv("DB_HOST")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    database = os.getenv("DB_DATABASE")
+    port = os.getenv("DB_PORT")  # Esto podría ser None si no está definido correctamente
+
+    # Imprimir para depuración (opcional)
+    #print(f"Host: {host}, User: {user}, Database: {database}, Port: {port}")
+
+    if port is None:
+        raise ValueError("DB_PORT no está definido en el archivo .env.")
+
+    return mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database,
+        port=int(port)  # Convertir a entero
+    )
 
 st.set_page_config(page_title="Barbería", page_icon="💈")
 
@@ -18,25 +45,41 @@ precios = {
 }
 
 # Formulario de registro
+#st.logo("img/ChetoMal.jpg")
 st.title("😎 CHETO :blue[MAL] :sunglasses:")
 
-st.divider()
 
 st.subheader("Registro de Ventas", divider="rainbow")
 
 fecha_actual = datetime.now()
 año_actual = fecha_actual.year
 
-# Cargar barberos para asignar el rol
-try:
-    barberos_df = pd.read_csv('data/barberos.csv')
-except FileNotFoundError:
-    st.error("El archivo de barberos no se encontró.")
-    barberos_df = pd.DataFrame(columns=["Nombre", "Rol", "Estado", "Fecha Alta", "Fecha Baja"])
+# # Cargar barberos para asignar el rol
+# try:
+#     barberos_df = pd.read_csv('data/barberos.csv')
+# except FileNotFoundError:
+#     st.error("El archivo de barberos no se encontró.")
+#     barberos_df = pd.DataFrame(columns=["nombre", "rol", "Estado", "Fecha Alta", "Fecha Baja"])
+
+# Conectar a la base de datos para obtener barberos
+conn = get_db_connection()
+cursor = conn.cursor()
+
+# Consulta SQL para obtener barberos activos
+query = "SELECT nombre, rol, activo FROM barberos WHERE activo = 'S' and baja = 'N'"
+cursor.execute(query)
+
+# Cargar los resultados en un DataFrame
+barberos_data = cursor.fetchall()
+barberos_df = pd.DataFrame(barberos_data, columns=["nombre", "rol", "activo"])
+
+# Cerrar la conexión
+cursor.close()
+conn.close()
 
 # Verifica si hay barberos en el archivo cargado
 if not barberos_df.empty:
-    barberos = barberos_df[barberos_df['Activo'] == 'S']["Nombre"].tolist()
+    barberos = barberos_df[barberos_df['activo'] == 'S']["nombre"].tolist()
     
     if len(barberos) > 0:
         barbero = st.selectbox("Selecciona el barbero", barberos)
@@ -65,7 +108,7 @@ if not barberos_df.empty:
         monto = precio
 
         # Cálculo de ingresos basado en el rol del barbero
-        rol_barbero = barberos_df.loc[barberos_df['Nombre'] == barbero, 'Rol']
+        rol_barbero = barberos_df.loc[barberos_df['nombre'] == barbero, 'rol']
 
         # Verificar si existe el rol para el barbero seleccionado
         if not rol_barbero.empty:
@@ -87,28 +130,38 @@ if not barberos_df.empty:
                     barbero_ingreso = 0.00  # No recibe comisión
                     socios_ingreso = precio  # Todo para los socios
 
-            # Guardar la venta
+            # Registrar Venta en MySQL
             if st.button("Registrar Venta"):
-                nueva_venta = pd.DataFrame({
-                    "Fecha": [fecha],
-                    "Barbero": [barbero],
-                    "Servicio": [servicio],
-                    "Monto": [monto],
-                    "Barbero Ingreso": [barbero_ingreso],
-                    "Socios Ingreso": [socios_ingreso],
-                    "Descripción": [descripcion]  # Agregar la descripción aquí
-                })
+                nueva_venta = {
+                    "fecha": fecha,
+                    "barbero": barbero,
+                    "servicio": servicio,
+                    "monto": monto,
+                    "barbero_ingreso": barbero_ingreso,
+                    "socios_ingreso": socios_ingreso,
+                    "descripcion": descripcion if servicio == "Otro" else None  # Descripción solo para "Otro"
+                }
 
-                try:
-                    ventas = pd.read_csv(f'data/ventas_{año_actual}.csv')
-                except FileNotFoundError:
-                    ventas = pd.DataFrame(columns=["Fecha", "Barbero", "Servicio", "Monto", "Barbero Ingreso", "Socios Ingreso", "Descripción"])
+                # Conectar a la base de datos
+                conn = get_db_connection()
+                cursor = conn.cursor()
 
-                # Eliminar columnas vacías o completamente NA antes de concatenar
-                nueva_venta = nueva_venta.dropna(axis=1, how='all')
-                ventas = pd.concat([ventas, nueva_venta], ignore_index=True)
-                ventas.to_csv(f'data/ventas_{año_actual}.csv', index=False)
+                # Insertar los datos de la venta en la tabla 'ventas'
+                query = """
+                INSERT INTO ventas (fecha, barbero, servicio, monto, barbero_ingreso, socios_ingreso, descripcion)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(query, (nueva_venta['fecha'], nueva_venta['barbero'], nueva_venta['servicio'],
+                                    nueva_venta['monto'], nueva_venta['barbero_ingreso'], nueva_venta['socios_ingreso'],
+                                    nueva_venta['descripcion']))
+
+                # Guardar cambios y cerrar conexión
+                conn.commit()
+                cursor.close()
+                conn.close()
+
                 st.success("Venta registrada correctamente")
+                
     else:
         st.warning("No hay barberos activos disponibles.")
 else:
