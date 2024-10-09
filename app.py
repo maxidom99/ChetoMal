@@ -90,7 +90,7 @@ if not barberos_df.empty:
     
     if len(barberos) > 0:
         barbero = st.selectbox("Selecciona el barbero", barberos)
-        servicio = st.selectbox("Selecciona el servicio", ["Corte de Pelo", "Corte de Barba", "Pelo y Barba", "Tatuaje", "Boyka", "Piercing"])
+        servicio = st.selectbox("Selecciona el servicio", ["Corte de Pelo", "Corte de Barba", "Corte y Barba", "Cejas","Mechitas (C/Corte)","Platinado (C/Corte)", "Baño de Color", "Tatuaje", "Boyka", "Piercing"])
 
         # Inicializar la variable de precio y descripción
         precio = None
