@@ -41,8 +41,13 @@ def main():
 # Definir precios fijos de los servicios
 precios = {
     "Corte de Pelo": 300,
-    "Corte de Barba": 200,
-    "Pelo y Barba": 350,
+    "Barba": 150,
+    "Pelo y Barba": 400,
+    "Cejas": 100,
+    "Mechitas (C/Corte)": 1190,
+    "Platinado (C/Corte)": 1500,
+    "Baño de Color":300,
+    "Piercing": 800,
     "Tatuaje": 0  # El precio de los tatuajes es variable
 }
 
@@ -85,7 +90,7 @@ if not barberos_df.empty:
     
     if len(barberos) > 0:
         barbero = st.selectbox("Selecciona el barbero", barberos)
-        servicio = st.selectbox("Selecciona el servicio", ["Corte de Pelo", "Corte de Barba", "Pelo y Barba", "Tatuaje", "Otro"])
+        servicio = st.selectbox("Selecciona el servicio", ["Corte de Pelo", "Corte de Barba", "Pelo y Barba", "Tatuaje", "Boyka", "Piercing"])
 
         # Inicializar la variable de precio y descripción
         precio = None
@@ -102,7 +107,7 @@ if not barberos_df.empty:
         if precio is not None:
             st.markdown(f"### Precio del servicio **{servicio}:** ${precio}")
 
-        if servicio == "Otro":
+        if servicio == "Boyka":
             descripcion = st.text_input("Descripción del servicio")
             precio = st.number_input("Ingresa el costo del servicio 'Otro'", min_value=0)
 
