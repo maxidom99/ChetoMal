@@ -133,7 +133,7 @@ if not ventas.empty:
     with col_socios:
         st.subheader("Ingresos de Socios")
         # Filtrar solo los empleados que son socios
-        socios = barberos[barberos['Rol'] == 'Socio']['Nombre']
+        socios = barberos[barberos['rol'] == 'Socio']['nombre']
         ingresos_socios = ventas.groupby('barbero')['socios_ingreso'].sum()
         
         # Mostrar solo ingresos de aquellos que son socios
