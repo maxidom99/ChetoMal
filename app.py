@@ -42,7 +42,7 @@ def main():
 precios = {
     "Corte de Pelo": 300,
     "Barba": 150,
-    "Pelo y Barba": 400,
+    "Corte y Barba": 400,
     "Cejas": 100,
     "Mechitas (C/Corte)": 1190,
     "Platinado (C/Corte)": 1500,
