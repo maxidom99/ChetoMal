@@ -110,13 +110,16 @@ def main():
         # Si se envía el formulario, agregar el nuevo barbero
         if submit_button:
             add_barber(nuevo_nombre, nuevo_rol, fecha_alta)
-            st.success(f"Barbero '{nuevo_nombre}' agregado exitosamente.")
+            if nuevo_rol == "Barbero":
+                st.success(f"Barbero '{nuevo_nombre}' agregado exitosamente.")
+            else:
+                st.success(f"Socio '{nuevo_nombre}' agregado exitosamente.")
             # Recargar la lista de barberos
             barberos_df = load_barbers()
             st.dataframe(barberos_df)
 
     # Función para dar de baja a los barberos
-    st.subheader("Activar/Dar de baja Barberos")
+    st.subheader("Activar/Dar de baja")
 
     # Loop por cada barbero en la tabla
     for index, row in barberos_df.iterrows():

@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -16,7 +17,7 @@ def get_db_connection():
     user = os.getenv("DB_USER")
     password = os.getenv("DB_PASSWORD")
     database = os.getenv("DB_DATABASE")
-    port = os.getenv("DB_PORT")  # Esto podría ser None si no está definido correctamente
+    port = os.getenv("DB_PORT")
 
     # Imprimir para depuración (opcional)
     #print(f"Host: {host}, User: {user}, Database: {database}, Port: {port}")
@@ -38,6 +39,39 @@ def main():
     # Construye el menú lateral
     Navbar()
 
+def calcular_ingresos(servicio, precio, rol_barbero, nombre_barbero, socios):
+    barbero_ingreso = 0
+    socios_ingreso = {socio: 0 for socio in socios}  # Inicializar ingresos en 0 para cada socio
+
+    if servicio == "Boyka":
+        # Si el servicio es "Boyka", el 100% va al barbero llamado "Boyka"
+        if nombre_barbero == "Boyka":
+            barbero_ingreso = precio  # Todo para el barbero Boyka
+        else:
+            barbero_ingreso = 0  # Ningún otro barbero recibe ingresos si no es Boyka
+    elif servicio == "Tatuaje":
+        # Si el servicio es "Tatuaje", el 100% va al socio llamado "Juanma"
+        if "Juanma" in socios:
+            socios_ingreso["Juanma"] = precio  # Todo para Juanma
+    elif servicio == "Piercing" and nombre_barbero != "Boyka":
+        # Si el servicio es "Piercing", el 50% se divide entre los socios
+        for socio in socios:
+            socios_ingreso[socio] = (0.50 * precio) / len(socios)  # 50% repartido entre los socios
+    else:
+        # Cualquier otro servicio
+        if rol_barbero == "Barbero":
+            barbero_ingreso = 0.50 * precio  # 50% para el barbero
+            for socio in socios:
+                socios_ingreso[socio] = (0.50 * precio) / len(socios)  # 50% repartido entre socios
+        elif rol_barbero == "Socio" and nombre_barbero != "Boyka":
+            # El socio no recibe comisión de barbero, todo va para los socios
+            for socio in socios:
+                socios_ingreso[socio] = precio / len(socios)  # Todo para los socios, dividido
+
+    return barbero_ingreso, socios_ingreso
+
+socios = ["Juanma", "Sebastian"]
+
 # Definir precios fijos de los servicios
 precios = {
     "Corte de Pelo": 300,
@@ -48,11 +82,11 @@ precios = {
     "Platinado (C/Corte)": 1500,
     "Baño de Color":300,
     "Piercing": 800,
-    "Tatuaje": 0  # El precio de los tatuajes es variable
+    "Boyka" : 0,
+    "Tatuaje": 0
 }
 
-# Formulario de registro
-#st.logo("img/ChetoMal.jpg")
+
 st.title("😎 CHETO :blue[MAL] :sunglasses:")
 
 
@@ -60,13 +94,6 @@ st.subheader("Registro de Ventas", divider="rainbow")
 
 fecha_actual = datetime.now()
 año_actual = fecha_actual.year
-
-# # Cargar barberos para asignar el rol
-# try:
-#     barberos_df = pd.read_csv('data/barberos.csv')
-# except FileNotFoundError:
-#     st.error("El archivo de barberos no se encontró.")
-#     barberos_df = pd.DataFrame(columns=["nombre", "rol", "Estado", "Fecha Alta", "Fecha Baja"])
 
 # Conectar a la base de datos para obtener barberos
 conn = get_db_connection()
@@ -109,7 +136,7 @@ if not barberos_df.empty:
 
         if servicio == "Boyka":
             descripcion = st.text_input("Descripción del servicio")
-            precio = st.number_input("Ingresa el costo del servicio 'Otro'", min_value=0)
+            precio = st.number_input("Ingresa el costo del servicio", min_value=0)
 
         fecha = st.date_input("Fecha de la venta", datetime.now())
         monto = precio
@@ -125,49 +152,53 @@ if not barberos_df.empty:
             rol_barbero = None
         
         # Lógica para calcular los ingresos según el rol
-        if rol_barbero:
-            if servicio == "Tatuaje" or servicio == "Otro":
-                barbero_ingreso = 0  # Estos servicios no generan ingresos para los barberos
-                socios_ingreso = precio  # Todo para los socios
-            else:
-                if rol_barbero == "Barbero":
-                    barbero_ingreso = 0.50 * precio  # 50% para el barbero
-                    socios_ingreso = 0.50 * precio  # 50% para los socios
-                else:  # Si es Socio
-                    barbero_ingreso = 0.00  # No recibe comisión
-                    socios_ingreso = precio  # Todo para los socios
+        
+        barbero_ingreso, socios_ingreso = calcular_ingresos(servicio, precio, rol_barbero, barbero, socios)
+        print(f"Ingreso para el barbero: {barbero_ingreso}")
+        print(f"Ingresos para los socios: {socios_ingreso}")
 
-            # Registrar Venta en MySQL
-            if st.button("Registrar Venta"):
-                nueva_venta = {
-                    "fecha": fecha,
-                    "barbero": barbero,
-                    "servicio": servicio,
-                    "monto": monto,
-                    "barbero_ingreso": barbero_ingreso,
-                    "socios_ingreso": socios_ingreso,
-                    "descripcion": descripcion if servicio == "Otro" else None  # Descripción solo para "Otro"
-                }
 
-                # Conectar a la base de datos
-                conn = get_db_connection()
-                cursor = conn.cursor()
+        # Registrar Venta en MySQL
+        if st.button("Registrar Venta"):
+            nueva_venta = {
+                "fecha": fecha,
+                "barbero": barbero,
+                "servicio": servicio,
+                "monto": monto,
+                "barbero_ingreso": barbero_ingreso,
+                "socios_ingreso": socios_ingreso,
+                "descripcion": descripcion if servicio == "Otro" or servicio == 'Boyka' else None  
+            }
 
-                # Insertar los datos de la venta en la tabla 'ventas'
-                query = """
-                INSERT INTO ventas (fecha, barbero, servicio, monto, barbero_ingreso, socios_ingreso, descripcion)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """
-                cursor.execute(query, (nueva_venta['fecha'], nueva_venta['barbero'], nueva_venta['servicio'],
-                                    nueva_venta['monto'], nueva_venta['barbero_ingreso'], nueva_venta['socios_ingreso'],
-                                    nueva_venta['descripcion']))
+            # Convertir el diccionario 'socios_ingreso' a JSON
+            socios_ingreso_json = json.dumps(nueva_venta['socios_ingreso'])
 
-                # Guardar cambios y cerrar conexión
-                conn.commit()
-                cursor.close()
-                conn.close()
+            # Conectar a la base de datos
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-                st.success("Venta registrada correctamente")
+            # Insertar los datos de la venta en la tabla 'ventas'
+            query = """
+            INSERT INTO ventas (fecha, barbero, servicio, monto, barbero_ingreso, socios_ingreso, descripcion)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            valores = (
+                nueva_venta['fecha'], 
+                nueva_venta['barbero'], 
+                nueva_venta['servicio'],
+                nueva_venta['monto'], 
+                nueva_venta['barbero_ingreso'], 
+                socios_ingreso_json,  # Guardar como JSON
+                nueva_venta['descripcion']
+            )
+            
+            cursor.execute(query, valores)
+            conn.commit()  # No olvides confirmar la transacción
+            cursor.close()
+            conn.close()
+
+
+            st.success("Venta registrada correctamente")
                 
     else:
         st.warning("No hay barberos activos disponibles.")
