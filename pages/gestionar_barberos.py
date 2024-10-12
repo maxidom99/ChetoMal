@@ -10,7 +10,7 @@ import os
 load_dotenv(dotenv_path='env/.env')
 
 # Configuración de la página
-st.set_page_config(page_title="Gestión de Barberos", page_icon="✂️", layout="wide")
+st.set_page_config(page_title="Panel de Gestión", page_icon="✂️", layout="wide")
 
 def get_db_connection():
     """Establecer la conexión a la base de datos."""
@@ -27,6 +27,32 @@ def get_db_connection():
         database=database,
         port=port
     )
+
+def load_services():
+    """Cargar la lista de servicios de la base de datos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id, nombre, precio, baja FROM servicios")
+    servicios_data = cursor.fetchall()
+
+    servicios_df = pd.DataFrame(servicios_data, columns=["id", "nombre", "precio", "baja"])
+    
+    cursor.close()
+    conn.close()
+    return servicios_df
+
+def add_service(nombre, precio):
+    """Agregar un nuevo servicio a la base de datos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = """INSERT INTO servicios (nombre, precio) VALUES (%s, %s)"""
+    cursor.execute(query, (nombre, precio))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
 def load_employers():
     """Cargar la lista de barberos de la base de datos."""
@@ -103,17 +129,39 @@ def update_employer_status(nombre, activo, baja):
     conn.commit()
     cursor.close()
     conn.close()
+    
+def update_service_status(nombre, baja):
+    """Actualizar el estado de un servicio en la base de datos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = """UPDATE servicios SET baja = %s WHERE nombre = %s"""
+    cursor.execute(query, (baja, nombre))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def main():
     # Construye el menú lateral
     Navbar()
 
+col1, col2 = st.columns(2)
+
+with col1:
+    bar = st.toggle("Gestionar Barberos")
+    
+with col2:
+    ser = st.toggle("Gestionar Servicios")
+
+# Mostrar la tabla actual
+st.title("Panel de Gestión")
+st.subheader('', divider='red')
+
+if bar:
+    #ser = True
     # Cargar la tabla de barberos y socios desde la base de datos
     socios_df, barberos_df = load_employers()
-
-    # Mostrar la tabla actual
-    st.title("Gestión de Barberos")
-
     # Formulario para agregar un nuevo empleado
     st.subheader("Agregar un Nuevo Empleado")
     with st.form(key="add_employer_form"):
@@ -145,7 +193,7 @@ def main():
 
     # Loop por cada barbero en la tabla
     for index, row in barberos_df.iterrows():
-        col1, col2 = st.columns([2, 1])
+        col1, col2 = st.columns([1.2, 1])
         
         with col1:
             st.write(f"Barbero: {row['Nombre']} | Activo: {row['Activo']} | Baja: {row['Baja']}")
@@ -170,6 +218,57 @@ def main():
 
     st.subheader("Lista de Socios")
     st.dataframe(socios_df['Nombre'], hide_index=True)
+        
+if ser:
+    st.subheader("Gestión de Servicios")
+    
+    servicios = load_services()
+    
+    with st.form(key="add_service_form"):
+            nuevo_nombre = st.text_input("Nombre del Servicio")
+            precio = st.number_input("Precio", min_value=0)
+            
+            # Botón para enviar el formulario
+            submit_button = st.form_submit_button(label="Agregar")
+
+            # Si se envía el formulario, agregar el nuevo barbero o socio
+            if submit_button:
+                # Validar que el nombre no esté vacío
+                if nuevo_nombre:
+                    add_service(nuevo_nombre, precio)
+                    st.success(f"Servicio '{nuevo_nombre}' agregado exitosamente.")
+                    
+    
+    # Función para dar de baja a los servicios
+    st.subheader("Activar/Dar de baja")
+
+    # Loop por cada servicio en la tabla
+    for index, row in servicios.iterrows():
+        col1, col2 = st.columns([0.6, 1.8])
+        
+        with col1:
+            st.write(f"Servicio: {row['nombre']} ---------->")
+
+        with col2:
+            if row["baja"] == "N":
+                if st.button(f"Dar de baja {row['nombre']}", key=f"baja_{index}_{row['nombre']}"):
+                    baja = 'S'
+                    update_service_status(row['nombre'], baja)
+                    st.success(f"Servicio {row['nombre']} dado de baja.")
+                    # Recargar la lista de barberos
+                    servicios = load_services()
+            else:
+                if st.button(f"Reactivar {row['nombre']}", key=f"alta_{index}_{row['nombre']}"):
+                    update_service_status(row['nombre'], "N")
+                    st.success(f"Servicio {row['nombre']} reactivado.")
+                    # Recargar la lista de barberos
+                    servicios = load_services()
+    
+    st.divider()
+    df = st.checkbox("Mostrar Listado")
+
+    if df:
+        st.dataframe(servicios, hide_index=True)
 
 if __name__ == '__main__':
     main()
